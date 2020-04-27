@@ -7,5 +7,5 @@
   <img src="https://img.shields.io/badge/Editor-VS_Code-0078d7.svg" />
   <img src="https://img.shields.io/badge/Runtime_Environment-Node.js-68A063.svg" />
   <img src="https://img.shields.io/badge/Library-Puppeteer-0078d7.svg" />
-  <img src="https://github.com/cmcodes1/InstaScraper/blob/master/preview.gif" />
+  <img src="" />
 </p>
