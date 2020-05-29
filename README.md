@@ -1,4 +1,4 @@
-<h1 align="center"> :smirk: InstaScraper </h2>
+<h1 align="center"> :smirk: InstaScraper </h1>
 <p align="center">
   A web scraping CLI tool for Instagram profiles. <br/> <br/>
   <img src="https://img.shields.io/badge/Platform-Windows-00a2ed.svg" />
