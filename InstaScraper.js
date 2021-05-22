@@ -1,37 +1,52 @@
-const puppeteer = require('puppeteer');
+const request = require('request');
+const cheerio = require("cheerio");
+const UserAgents = require('user-agents');
+
+const get = (url) => {
+    const requestOptions = {
+        url,
+        headers: {
+            'authority': 'www.instagram.com',
+            'pragma': 'no-cache',
+            'cache-control': 'no-cache',
+            'upgrade-insecure-requests': '1',
+            'user-agent': (new UserAgents()).random().toString(),
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'sec-fetch-site': 'same-origin',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-user': '?1',
+            'sec-fetch-dest': 'document',
+            'accept-language': 'en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7',
+        }
+    };
+
+    return new Promise((resolve) => {
+        request(requestOptions, (_, __, body) => {
+            resolve(body);
+        });
+    });
+};
 
 async function scrapeIG(url) {
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    await page.goto(url);
-    
-    const [e1] = await page.$x('//*[@id="react-root"]/section/main/div/header/section/div[1]/h2');
-    const txt1 = await e1.getProperty('textContent');
-    const username = await txt1.jsonValue();
+    const $ = cheerio.load(await get(url));
 
-    const [e2] = await page.$x('//*[@id="react-root"]/section/main/div/header/section/div[2]/h1');
-    const txt2 = await e2.getProperty('textContent');
-    const name = await txt2.jsonValue();
-    
-    const [e3] = await page.$x('//*[@id="react-root"]/section/main/div/header/section/div[2]/span');
-    const txt3 = await e3.getProperty('textContent');
-    const bio = await txt3.jsonValue();
+    const description = $("meta[property='og:description']").attr('content');
+    if (! description) {
+        throw new Error('User not found');
+    }
 
-    const [e4] = await page.$x('//*[@id="react-root"]/section/main/div/header/section/ul/li[2]/a/span');
-    const txt4 = await e4.getProperty('textContent');
-    const followers = await txt4.jsonValue();
+    const context = JSON.parse($("script[type='application/ld\+json']").html().trim());
 
-    const [e5] = await page.$x('//*[@id="react-root"]/section/main/div/header/section/ul/li[3]/a/span');
-    const txt5 = await e5.getProperty('textContent');
-    const followings = await txt5.jsonValue();
+    const username = context.alternateName;
+    const name = context.name;
+    const bio = decodeURIComponent(context.description);
+    const userUrl = context.url;
 
-    const [e6] = await page.$x('//*[@id="react-root"]/section/main/div/header/section/ul/li[1]/a/span');
-    const txt6 = await e6.getProperty('textContent');
-    const posts = await txt6.jsonValue();
+    const [, followers] = description.match(/([0-9]+) Followers/);
+    const [, following] = description.match(/([0-9]+) Following/);
+    const [, posts] = description.match(/([0-9]+) Posts/);
 
-    console.log({username, name, bio, followers, followings, posts});
-
-    browser.close();
+    console.log({ username, name, bio, url: userUrl, followers, following, posts });
 }
 
 var standard_input = process.stdin;
@@ -47,6 +62,11 @@ standard_input.on('data', function (data) {
         process.exit();
     }
     else {
-        scrapeIG('https://www.instagram.com/' + data);
+        scrapeIG("https://instagram.com/" + data)
+            .then(() => process.exit())
+            .catch((err) => {
+                console.error(err);
+                process.exit();
+            });
     }
 });
